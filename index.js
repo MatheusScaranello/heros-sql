@@ -100,7 +100,10 @@ app.get("/fight/:id/:id2", async (req, res) => {
         }
         if (personagem1.hp <= 0 || personagem2.hp < personagem1.hp) {
             winner = personagem2;
-        } else {
+        } else if (personagem2.hp == personagem1.hp) {
+            winner = null;
+        }
+        else {
             winner = personagem1;
         }
         Historico(winner.id, personagem1.id === winner.id ? personagem2.id : personagem1.id);
