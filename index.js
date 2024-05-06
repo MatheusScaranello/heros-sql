@@ -14,6 +14,10 @@ const pool = new Pool({
     port: 5432,
 });
 
+app.get("/", (req, res) => {
+    res.send("Bem-vindo ao RPG API! Acesse /characters para ver os personagens.");
+});
+
 app.get("/characters", async (req, res) => {
     try {
         const { rows } = await pool.query("SELECT * FROM characters");
@@ -36,10 +40,10 @@ app.get("/characters/:id", async (req, res) => {
 });
 
 app.post("/characters", async (req, res) => {
-    const { name, HP, DMG, DEF, AGI, Class  } = req.body;
+    const { name, HP, DMG, DEF, Class } = req.body;
     try {
-        await pool.query("INSERT INTO characters (name, HP, DMG, DEF, AGI, Class) VALUES ($1, $2, $3, $4, $5, $6)", [name, HP, DMG, DEF, AGI, Class]);
-        res.send("Personagem adicionado com sucesso!");
+        await pool.query("INSERT INTO characters (name, HP, DMG, DEF, Class) VALUES ($1, $2, $3, $4, $5)", [name, HP, DMG, DEF, Class]);
+        res.send("Personagem criado com sucesso!");
     } catch (error) {
         console.log(error);
         res.sendStatus(500);
@@ -48,9 +52,9 @@ app.post("/characters", async (req, res) => {
 
 app.put("/characters/:id", async (req, res) => {
     const { id } = req.params;
-    const { name, HP, DMG, DEF, AGI, Class } = req.body;
+    const { name, HP, DMG, DEF, Class } = req.body;
     try {
-        await pool.query("UPDATE characters SET name = $1, HP = $2, DMG = $3, DEF = $4, AGI = $5, Class = $6 WHERE id = $7", [name, HP, DMG, DEF, AGI, Class, id]);
+        await pool.query("UPDATE characters SET name = $1, HP = $2, DMG = $3, DEF = $4, Class = $5 WHERE id = $6", [name, HP, DMG, DEF, Class, id]);
         res.send("Personagem atualizado com sucesso!");
     } catch (error) {
         console.log(error);
@@ -94,18 +98,35 @@ app.get("/fight/:id/:id2", async (req, res) => {
             personagem1.hp -= personagem2.dmg - personagem1.def;
             round++;
         }
-        if (personagem1.hp <= 0) {
+        if (personagem1.hp <= 0 || personagem2.hp < personagem1.hp) {
             winner = personagem2;
         } else {
             winner = personagem1;
         }
+        Historico(winner.id, personagem1.id === winner.id ? personagem2.id : personagem1.id);
         res.send({ winner, round });
+
     } catch (error) {
         console.log(error);
         res.sendStatus(500);
     }
 });
 
+app.get("/historico", async (req, res) => {
+    try {
+        const query = `
+        SELECT c.name AS winner, c2.name AS loser, h.data 
+        FROM historico h
+        JOIN characters c ON c.id = h.winner
+        JOIN characters c2 ON c2.id = h.loser;
+        `;
+        const { rows } = await pool.query(query);
+        res.send(rows);
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(500);
+    }
+});
 
 
 app.listen(PORT, () => {
@@ -134,4 +155,9 @@ const Vantagens = (Class, HP, DMG, DEF, adversarioClass) => {
         DEF += 120;
     }
     return { HP, DMG, DEF };
+};
+
+const Historico = (winner, loser) => {
+    const currentDate = new Date().toISOString().split('T')[0]; // Obtém a data atual no formato YYYY-MM-DD
+    pool.query("INSERT INTO historico (winner, loser, data) VALUES ($1, $2, $3)", [winner, loser, currentDate]);
 };
