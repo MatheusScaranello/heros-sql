@@ -163,4 +163,4 @@ const Vantagens = (Class, HP, DMG, DEF, adversarioClass) => {
 const Historico = (winner, loser) => {
     const currentDate = new Date().toISOString().split('T')[0]; // Obtém a data atual no formato YYYY-MM-DD
     pool.query("INSERT INTO historico (winner, loser, data) VALUES ($1, $2, $3)", [winner, loser, currentDate]);
-};
+}
